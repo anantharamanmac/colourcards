@@ -35,13 +35,19 @@ function GameBoard() {
   const [selectColor, setSelectColor] = useState(false);
   const [pendingWildCard, setPendingWildCard] = useState(null);
   const [pendingDraw, setPendingDraw] = useState(0);
-  const [toasts, setToasts] = useState([]);
+  const [toastMessage, setToastMessage] = useState("");
+  const [turnMessage, setTurnMessage] = useState("Your Turn");
 
   useEffect(() => {
     const newDeck = generateDeck();
     setDiscardPile([newDeck[0]]);
     dealCards(newDeck.slice(1));
   }, []);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(""), 2000);
+  };
 
   const dealCards = (deckCopy) => {
     let player = [];
@@ -65,11 +71,6 @@ function GameBoard() {
     }, 7 * 200 + 150);
   };
 
-  const showToast = (message) => {
-    setToasts(prev => [...prev, message]);
-    setTimeout(() => setToasts(prev => prev.slice(1)), 2000);
-  };
-
   const checkGameOver = () => {
     if (playerHand.length === 0) {
       setGameOver(true);
@@ -83,13 +84,9 @@ function GameBoard() {
     }
     if (deck.length === 0) {
       setGameOver(true);
-      if (playerHand.length < computerHand.length) {
-        showToast(`Deck empty! You win with fewer cards (${playerHand.length} vs ${computerHand.length})`);
-      } else if (computerHand.length < playerHand.length) {
-        showToast(`Deck empty! Computer wins with fewer cards (${computerHand.length} vs ${playerHand.length})`);
-      } else {
-        showToast("Deck empty! It's a draw!");
-      }
+      if (playerHand.length < computerHand.length) showToast(`Deck empty! You win with fewer cards.`);
+      else if (computerHand.length < playerHand.length) showToast(`Deck empty! Computer wins with fewer cards.`);
+      else showToast("Deck empty! It's a draw!");
       return true;
     }
     return false;
@@ -109,10 +106,9 @@ function GameBoard() {
       setPlayerHand(prev => [...prev, ...drawnCards]);
       setHasDrawn(true);
       setCurrentTurn("computer");
-      showToast(`You drew ${count} card(s)`);
+      setTurnMessage("Computer's Turn");
     } else {
       setComputerHand(prev => [...prev, ...drawnCards]);
-      showToast(`Computer drew ${count} card(s)`);
     }
 
     if (deck.length - count <= 0) {
@@ -121,108 +117,111 @@ function GameBoard() {
   };
 
   useEffect(() => {
-    if (currentTurn === "player") setHasDrawn(false);
+    if (currentTurn === "player") {
+      setHasDrawn(false);
+      setTurnMessage("Your Turn");
+    }
   }, [currentTurn]);
 
   const applyActionCard = (card, nextPlayer) => {
     if (card.value === "+2") {
       drawCard(nextPlayer, 2);
     } else if (card.value === "Skip" || card.value === "Reverse") {
-      // acts like skip for 2 players
-      setCurrentTurn(currentTurn);
+      setCurrentTurn(nextPlayer === "player" ? "computer" : "player");
+      setTurnMessage(nextPlayer === "player" ? "Computer's Turn" : "Your Turn");
       return;
     } else {
       setCurrentTurn(nextPlayer);
+      setTurnMessage(nextPlayer === "player" ? "Your Turn" : "Computer's Turn");
     }
   };
 
-const handlePlayerCard = (card) => {
-  if (gameOver || selectColor) return;
+  const handlePlayerCard = (card) => {
+    if (gameOver || selectColor) return;
 
-  const topCard = discardPile[discardPile.length - 1];
+    const topCard = discardPile[discardPile.length - 1];
 
-  // Handle pending +4 stacking
-  if (pendingDraw > 0) {
-    if (card.value === "Wild +4") {
-      setDiscardPile([...discardPile, card]);
+    // Handle pending +4 stacking
+    if (pendingDraw > 0) {
+      if (card.value === "Wild +4") {
+        setDiscardPile([...discardPile, card]);
+        setPlayerHand(playerHand.filter(c => c !== card));
+        setPendingDraw(pendingDraw + 4);
+        setSelectColor(true);
+        setPendingWildCard(card);
+      } else {
+        drawCard("player", pendingDraw);
+        showToast(`You drew ${pendingDraw} cards!`);
+        setPendingDraw(0);
+        setCurrentTurn("computer");
+        setTurnMessage("Computer's Turn");
+      }
+      return;
+    }
+
+    if (card.color === topCard.color || card.value === topCard.value || card.color === "black") {
+      const willHaveOneCard = playerHand.length === 2;
+
+      // Remove card from hand
       setPlayerHand(playerHand.filter(c => c !== card));
-      setPendingDraw(pendingDraw + 4);
-      setSelectColor(true);
-      setPendingWildCard(card);
-      return;
-    } else {
-      drawCard("player", pendingDraw);
-      showToast(`You drew ${pendingDraw} cards!`);
-      setPendingDraw(0);
-      setCurrentTurn("computer");
-      return;
+
+      if (card.value === "Wild +4") {
+        setPendingDraw(4);
+        setPendingWildCard(card);
+        setSelectColor(true);
+        return;
+      }
+      if (card.color === "black") {
+        setPendingWildCard(card);
+        setSelectColor(true);
+        return;
+      }
+
+      setDiscardPile([...discardPile, card]);
+
+      if (checkGameOver()) return;
+
+      if (willHaveOneCard && !playerDeclaredLast) {
+        // wait 2 sec to apply penalty
+        const penaltyTimeout = setTimeout(() => {
+          if (!playerDeclaredLast) {
+            showToast("Missed UNO! +1 penalty card");
+            drawCard("player", 1);
+          }
+        }, 2000);
+      }
+
+      setPlayerDeclaredLast(false);
+      applyActionCard(card, "computer");
     }
-  }
+  };
 
-  // Validate card play
-  if (card.color === topCard.color || card.value === topCard.value || card.color === "black") {
-    const willHaveOneCard = playerHand.length === 2;
-
-    // Remove card from hand immediately
-    setPlayerHand(playerHand.filter(c => c !== card));
-
-    // Handle wild cards
-    if (card.value === "Wild +4") {
-      setPendingDraw(pendingDraw + 4);
-      setPendingWildCard(card);
-      setSelectColor(true);
-      return;
-    }
-    if (card.color === "black") {
-      setPendingWildCard(card);
-      setSelectColor(true);
-      return;
-    }
-
-    setDiscardPile([...discardPile, card]);
-
-    // Check UNO penalty
-    if (willHaveOneCard && !playerDeclaredLast) {
-      // Give 2 seconds to declare UNO
-      const penaltyTimeout = setTimeout(() => {
-        if (!playerDeclaredLast) {
-          showToast("Missed UNO! +1 penalty card");
-          drawCard("player", 1);
-        }
-      }, 2000);
-      // Store timeout in state if needed to cancel
-    }
-
-    setCurrentTurn("computer");
-
-    checkGameOver();
-  }
-};
-
-// Declare UNO
-const declareUNO = () => {
-  setPlayerDeclaredLast(true);
-  setUnoPopup(true); // show UNO popup briefly
-  showToast("UNO declared!");
-  setTimeout(() => setUnoPopup(false), 1500);
-};
-
+  const declareUNO = () => {
+    setPlayerDeclaredLast(true);
+    setUnoPopup(true);
+    showToast("UNO declared!");
+    setTimeout(() => setUnoPopup(false), 1500);
+  };
 
   useEffect(() => {
     if (currentTurn === "computer" && !dealAnimation && !gameOver) {
       setTimeout(() => {
         const topCard = discardPile[discardPile.length - 1];
 
+        // Handle pending +4 for computer
         if (pendingDraw > 0) {
-          const playable = computerHand.find(c => c.value === "Wild +4");
-          if (playable) {
-            setDiscardPile([...discardPile, playable]);
-            setComputerHand(computerHand.filter(c => c !== playable));
+          const hasWildPlus4 = computerHand.find(c => c.value === "Wild +4");
+
+          if (hasWildPlus4) {
+            // Play their Wild +4 to stack
+            setDiscardPile([...discardPile, hasWildPlus4]);
+            setComputerHand(computerHand.filter(c => c !== hasWildPlus4));
             setPendingDraw(pendingDraw + 4);
-            playable.color = colors[Math.floor(Math.random() * colors.length)];
-            applyActionCard(playable, "player");
+            hasWildPlus4.color = colors[Math.floor(Math.random() * colors.length)];
+            applyActionCard(hasWildPlus4, "player");
           } else {
             drawCard("computer", pendingDraw);
+            showToast(`Computer drew ${pendingDraw} cards!`);
             setPendingDraw(0);
             setCurrentTurn("player");
           }
@@ -262,6 +261,7 @@ const declareUNO = () => {
   return (
     <div className="game-board">
       <h2>UNO Game</h2>
+      <div className="turn-indicator">{turnMessage}</div>
 
       <div className="computer-hand">
         <p>Computer: {computerHand.length} cards</p>
@@ -275,9 +275,6 @@ const declareUNO = () => {
       </div>
 
       <div className="center-area">
-        <div className={`turn-indicator ${currentTurn}`}>
-          {currentTurn === "player" ? "Your Turn" : "Computer Turn"}
-        </div>
         <div className="discard-pile">
           {discardPile.length ? renderCard(discardPile[discardPile.length - 1]) : null}
         </div>
@@ -305,6 +302,7 @@ const declareUNO = () => {
       </button>
 
       {unoPopup && <div className="uno-popup">UNO!</div>}
+      {toastMessage && <div className="toast-message">{toastMessage}</div>}
 
       {selectColor && (
         <div className="color-selector">
@@ -319,18 +317,12 @@ const declareUNO = () => {
                 setPendingWildCard(null);
                 setSelectColor(false);
                 setCurrentTurn("computer");
+                setTurnMessage("Computer's Turn");
               }}
             />
           ))}
         </div>
       )}
-
-      {/* Toasts */}
-      <div className="toast-container">
-        {toasts.map((t, idx) => (
-          <div key={idx} className="toast">{t}</div>
-        ))}
-      </div>
     </div>
   );
 }
