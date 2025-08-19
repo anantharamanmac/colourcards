@@ -37,6 +37,7 @@ function GameBoard() {
   const [pendingDraw, setPendingDraw] = useState(0);
   const [toastMessage, setToastMessage] = useState("");
   const [turnMessage, setTurnMessage] = useState("Your Turn");
+  const [showRestart, setShowRestart] = useState(false);
 
   useEffect(() => {
     const newDeck = generateDeck();
@@ -75,11 +76,13 @@ function GameBoard() {
     if (playerHand.length === 0) {
       setGameOver(true);
       showToast("You Win!");
+      setTimeout(() => setShowRestart(true), 2000);
       return true;
     }
     if (computerHand.length === 0) {
       setGameOver(true);
       showToast("Computer Wins!");
+      setTimeout(() => setShowRestart(true), 2000);
       return true;
     }
     if (deck.length === 0) {
@@ -87,6 +90,7 @@ function GameBoard() {
       if (playerHand.length < computerHand.length) showToast(`Deck empty! You win with fewer cards.`);
       else if (computerHand.length < playerHand.length) showToast(`Deck empty! Computer wins with fewer cards.`);
       else showToast("Deck empty! It's a draw!");
+      setTimeout(() => setShowRestart(true), 2000);
       return true;
     }
     return false;
@@ -182,7 +186,6 @@ function GameBoard() {
       if (checkGameOver()) return;
 
       if (willHaveOneCard && !playerDeclaredLast) {
-        // wait 2 sec to apply penalty
         const penaltyTimeout = setTimeout(() => {
           if (!playerDeclaredLast) {
             showToast("Missed UNO! +1 penalty card");
@@ -208,12 +211,9 @@ function GameBoard() {
       setTimeout(() => {
         const topCard = discardPile[discardPile.length - 1];
 
-        // Handle pending +4 for computer
         if (pendingDraw > 0) {
           const hasWildPlus4 = computerHand.find(c => c.value === "Wild +4");
-
           if (hasWildPlus4) {
-            // Play their Wild +4 to stack
             setDiscardPile([...discardPile, hasWildPlus4]);
             setComputerHand(computerHand.filter(c => c !== hasWildPlus4));
             setPendingDraw(pendingDraw + 4);
@@ -257,6 +257,32 @@ function GameBoard() {
       {!hideValue && <span className="card-value">{card.value}</span>}
     </div>
   );
+
+  const restartGame = () => {
+    const newDeck = generateDeck();
+    setDeck([]);
+    setPlayerHand([]);
+    setComputerHand([]);
+    setDiscardPile([]);
+    setCurrentTurn("player");
+    setDealAnimation(true);
+    setPlayerDeclaredLast(false);
+    setComputerDeclaredLast(false);
+    setHasDrawn(false);
+    setGameOver(false);
+    setUnoPopup(false);
+    setSelectColor(false);
+    setPendingWildCard(null);
+    setPendingDraw(0);
+    setToastMessage("");
+    setTurnMessage("Your Turn");
+    setShowRestart(false);
+
+    setTimeout(() => {
+      setDiscardPile([newDeck[0]]);
+      dealCards(newDeck.slice(1));
+    }, 200);
+  };
 
   return (
     <div className="game-board">
@@ -322,6 +348,12 @@ function GameBoard() {
             />
           ))}
         </div>
+      )}
+
+      {gameOver && showRestart && (
+        <button className="start-again-button" onClick={restartGame}>
+          Start Again
+        </button>
       )}
     </div>
   );
