@@ -1,0 +1,39 @@
+/* GameLoader.css */
+.loader-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #6b0f1a, #b91372);
+  color: white;
+  flex-direction: column;
+}
+
+.loader h2 {
+  margin-top: 20px;
+  font-family: sans-serif;
+}
+
+.card-stack {
+  position: relative;
+  width: 80px;
+  height: 120px;
+}
+
+.shuffle-card {
+  position: absolute;
+  width: 60px;
+  height: 90px;
+  border-radius: 10px;
+  background: linear-gradient(45deg, #ff3c3c, #ffdd00);
+  top: 0;
+  left: 0;
+  transform-origin: center;
+  animation: shuffle 1s infinite alternate ease-in-out;
+}
+
+@keyframes shuffle {
+  0% { transform: rotate(0deg) translate(0,0); }
+  50% { transform: rotate(20deg) translate(15px, -10px); }
+  100% { transform: rotate(-15deg) translate(-10px, 10px); }
+}

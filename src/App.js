@@ -1,12 +1,16 @@
-import React from "react";
+import React, { useState } from "react";
 import GameBoard from "./components/GameBoard";
+import GameLoader from "./components/GameLoader";
 import "./styles.css";
 
 function App() {
+  const [started, setStarted] = useState(false);
+
   return (
-    <div className="App">
-      <GameBoard />
-    </div>
+    <>
+      {!started && <GameLoader onStart={() => setStarted(true)} />}
+      {started && <GameBoard />}
+    </>
   );
 }
 
