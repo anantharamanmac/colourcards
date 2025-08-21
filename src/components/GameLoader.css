@@ -1,39 +1,61 @@
-/* GameLoader.css */
 .loader-screen {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background: linear-gradient(135deg, #6b0f1a, #b91372);
-  color: white;
+  background: linear-gradient(135deg, #0d0d0d, #1a1a1a);
   flex-direction: column;
+  color: #fff;
+  font-family: 'Poppins', sans-serif;
 }
 
-.loader h2 {
-  margin-top: 20px;
-  font-family: sans-serif;
-}
-
-.card-stack {
+.shuffle-area {
   position: relative;
-  width: 80px;
-  height: 120px;
+  width: 120px;
+  height: 160px;
+  perspective: 1000px;
 }
 
 .shuffle-card {
   position: absolute;
-  width: 60px;
-  height: 90px;
-  border-radius: 10px;
-  background: linear-gradient(45deg, #ff3c3c, #ffdd00);
+  width: 100px;
+  height: 140px;
+  border-radius: 12px;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+  border: 2px solid #fff;
   top: 0;
   left: 0;
-  transform-origin: center;
-  animation: shuffle 1s infinite alternate ease-in-out;
+  animation: shuffleMove 1s ease-in-out infinite;
+  backface-visibility: hidden;
 }
 
-@keyframes shuffle {
-  0% { transform: rotate(0deg) translate(0,0); }
-  50% { transform: rotate(20deg) translate(15px, -10px); }
-  100% { transform: rotate(-15deg) translate(-10px, 10px); }
+/* Give cards UNO-like colors */
+.card-0 { background: #e53935; animation-delay: 0s; }
+.card-1 { background: #fdd835; color: #000; animation-delay: 0.1s; }
+.card-2 { background: #43a047; animation-delay: 0.2s; }
+.card-3 { background: #1e88e5; animation-delay: 0.3s; }
+.card-4 { background: #000; animation-delay: 0.4s; }
+.card-5 { background: #ff5722; animation-delay: 0.5s; }
+
+@keyframes shuffleMove {
+  0%   { transform: rotate(0deg) translate(0,0) scale(1); z-index: 1; }
+  25%  { transform: rotate(8deg) translate(-25px,-20px) scale(1.05); z-index: 2; }
+  50%  { transform: rotate(-8deg) translate(25px,20px) scale(1.05); z-index: 3; }
+  75%  { transform: rotate(5deg) translate(-15px,15px) scale(1.05); z-index: 4; }
+  100% { transform: rotate(0deg) translate(0,0) scale(1); z-index: 5; }
+}
+
+.loader-text {
+  margin-top: 30px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #f4f4f4;
+  text-shadow: 0 0 8px rgba(255,255,255,0.2);
+  animation: fadeBlink 1.2s infinite alternate;
+}
+
+@keyframes fadeBlink {
+  from { opacity: 0.6; }
+  to   { opacity: 1; }
 }

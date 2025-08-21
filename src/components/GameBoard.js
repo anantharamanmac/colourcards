@@ -106,7 +106,10 @@ function GameBoard() {
     setDeck(deck.slice(count));
 
     if (player === "player") {
-      if (hasDrawn) return;
+      if (hasDrawn) {
+        showToast("You already drew a card this turn!");
+        return;
+      }
       setPlayerHand(prev => [...prev, ...drawnCards]);
       setHasDrawn(true);
       setCurrentTurn("computer");
@@ -145,7 +148,6 @@ function GameBoard() {
 
     const topCard = discardPile[discardPile.length - 1];
 
-    // Handle pending +4 stacking
     if (pendingDraw > 0) {
       if (card.value === "Wild +4") {
         setDiscardPile([...discardPile, card]);
@@ -165,8 +167,6 @@ function GameBoard() {
 
     if (card.color === topCard.color || card.value === topCard.value || card.color === "black") {
       const willHaveOneCard = playerHand.length === 2;
-
-      // Remove card from hand
       setPlayerHand(playerHand.filter(c => c !== card));
 
       if (card.value === "Wild +4") {
@@ -186,7 +186,7 @@ function GameBoard() {
       if (checkGameOver()) return;
 
       if (willHaveOneCard && !playerDeclaredLast) {
-        const penaltyTimeout = setTimeout(() => {
+        setTimeout(() => {
           if (!playerDeclaredLast) {
             showToast("Missed UNO! +1 penalty card");
             drawCard("player", 1);
@@ -196,6 +196,8 @@ function GameBoard() {
 
       setPlayerDeclaredLast(false);
       applyActionCard(card, "computer");
+    } else {
+      showToast("Invalid move! Card doesn't match.");
     }
   };
 
@@ -286,9 +288,7 @@ function GameBoard() {
 
   return (
     <div className="game-board">
-      <h2>UNO Game</h2>
-      <div className="turn-indicator">{turnMessage}</div>
-
+      {/* CPU HAND TOP */}
       <div className="computer-hand">
         <p>Computer: {computerHand.length} cards</p>
         <div className="hand">
@@ -300,9 +300,31 @@ function GameBoard() {
         </div>
       </div>
 
-      <div className="center-area">
-        <div className="discard-pile">
-          {discardPile.length ? renderCard(discardPile[discardPile.length - 1]) : null}
+      {/* CENTER GAME AREA */}
+      <div className="center-box">
+        <div className="turn-indicator">{turnMessage}</div>
+        <div className="draw-discard-container">
+          {/* Draw Pile */}
+          <div className="pile-section">
+            <div className="pile-label">Draw Pile</div>
+            <div 
+              className="card card-back" 
+              onClick={() => drawCard("player", 1)}
+            >
+              UNO
+            </div>
+            <div className="pile-count">{deck.length} cards</div>
+          </div>
+
+          {/* Current Card */}
+          <div className="pile-section">
+            <div className="pile-label">Current Card</div>
+            {discardPile.length ? (
+              renderCard(discardPile[discardPile.length - 1])
+            ) : (
+              <div className="card empty">No Card</div>
+            )}
+          </div>
         </div>
 
         {!dealAnimation && playerHand.length === 1 && !playerDeclaredLast && !gameOver && (
@@ -312,6 +334,7 @@ function GameBoard() {
         )}
       </div>
 
+      {/* PLAYER HAND BOTTOM */}
       <PlayerHand
         hand={playerHand}
         onCardClick={handlePlayerCard}
